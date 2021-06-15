@@ -77,7 +77,7 @@ def read_outcomes(filepath_or_buffer, sep='|'):
     data.drop_duplicates(inplace=True)
 
     data['UI_DIAS_DESFECHO'] = (data['DT_DESFECHO'] -
-            data['DT_ATENDIMENTO']).dt.days
+                                data['DT_ATENDIMENTO']).dt.days
 
     return data
 
@@ -86,7 +86,8 @@ def assess_sample_severity(sample):
     if sample['UI_DIAS_DESFECHO'] > 9 and sample['DE_TIPO_ATENDIMENTO'] == 'Internado':
         return 1
 
-    if not pd.isna(sample['DE_DESFECHO']) and sample['DE_DESFECHO'].find('Óbito'):
+    if not pd.isna(sample['DE_DESFECHO']
+                   ) and sample['DE_DESFECHO'].find('Óbito'):
         return 1
 
     return 0
@@ -98,7 +99,7 @@ def assess_severity(data):
 
     Parameters
     ----------
-    data: DataFrame (n_samples, 8)
+    data: DataFrame (n_samples, 9)
         Data with outcomes, see `read_outcomes`.
     """
     return data.apply(assess_sample_severity, axis=1)
