@@ -8,3 +8,10 @@ def do_nothing():
     Something that does nothing.
     """
     pass
+
+
+def do_nothing_differently():
+    """
+    Just kidding, it still does nothing the same way.
+    """
+    pass
