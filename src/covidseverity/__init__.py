@@ -29,6 +29,8 @@ def read_patients(filepath_or_buffer, sep='|'):
     for column, value in missing_values:
         data.loc[data[column] == value, column] = None
 
+    data.drop_duplicates(inplace=True)
+
     return data
 
 
@@ -48,5 +50,30 @@ def read_tests(filepath_or_buffer, sep='|'):
     date_columns = [col for col in data if col.startswith('DT_')]
     for column in date_columns:
         data[column] = pd.to_datetime(data[column], format='%d/%m/%Y')
+
+    data.drop_duplicates(inplace=True)
+
+    return data
+
+
+def read_outcomes(filepath_or_buffer, sep='|'):
+    """
+    Reads and organizes outcomes file.
+    """
+    data = pd.read_table(filepath_or_buffer, sep=sep)
+    assert data.shape[1] == 8
+
+    missing_values = [
+        ('DT_DESFECHO', 'DDMMAA'),
+    ]
+
+    for column, value in missing_values:
+        data.loc[data[column] == value, column] = None
+
+    date_columns = [col for col in data if col.startswith('DT_')]
+    for column in date_columns:
+        data[column] = pd.to_datetime(data[column], format='%d/%m/%Y')
+
+    data.drop_duplicates(inplace=True)
 
     return data
