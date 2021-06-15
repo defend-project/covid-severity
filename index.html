@@ -34,18 +34,80 @@ Python package `defend-covid-severity` to generate severity-prediction views of
 the datasets provided by FAPESP COVID-19 DataSharing/BR.
 &#34;&#34;&#34;
 
-def do_nothing():
-    &#34;&#34;&#34;
-    Something that does nothing.
-    &#34;&#34;&#34;
-    pass
+import pandas as pd
 
 
-def do_nothing_differently():
+def read_patients(filepath_or_buffer, sep=&#39;|&#39;):
     &#34;&#34;&#34;
-    Just kidding, it still does nothing the same way.
+    Reads and organizes patients file.
     &#34;&#34;&#34;
-    pass</code></pre>
+    data = pd.read_table(filepath_or_buffer, sep=sep)
+    assert data.shape[1] == 7
+
+    data.rename(str.upper, axis=&#39;columns&#39;, inplace=True)
+
+    for column in [&#39;AA_NASCIMENTO&#39;]:
+        data[column] = pd.to_numeric(
+            data[column], errors=&#39;coerce&#39;, downcast=&#39;integer&#39;)
+
+    missing_values = [
+        (&#39;CD_PAIS&#39;, &#39;XX&#39;),
+        (&#39;CD_UF&#39;, &#39;UU&#39;),
+        (&#39;CD_MUNICIPIO&#39;, &#39;MMMM&#39;),
+        (&#39;CD_CEPREDUZIDO&#39;, &#39;CCCC&#39;)
+    ]
+
+    for column, value in missing_values:
+        data.loc[data[column] == value, column] = None
+
+    data.drop_duplicates(inplace=True)
+
+    return data
+
+
+def read_tests(filepath_or_buffer, sep=&#39;|&#39;):
+    &#34;&#34;&#34;
+    Reads and organizes tests file.
+    &#34;&#34;&#34;
+    data = pd.read_table(filepath_or_buffer, sep=sep)
+    assert data.shape[1] == 9
+
+    data.rename(str.upper, axis=&#39;columns&#39;, inplace=True)
+
+    nominal_columns = [col for col in data if col.startswith(&#39;DE_&#39;)]
+    for column in nominal_columns:
+        data[column] = data[column].str.strip()
+
+    date_columns = [col for col in data if col.startswith(&#39;DT_&#39;)]
+    for column in date_columns:
+        data[column] = pd.to_datetime(data[column], format=&#39;%d/%m/%Y&#39;)
+
+    data.drop_duplicates(inplace=True)
+
+    return data
+
+
+def read_outcomes(filepath_or_buffer, sep=&#39;|&#39;):
+    &#34;&#34;&#34;
+    Reads and organizes outcomes file.
+    &#34;&#34;&#34;
+    data = pd.read_table(filepath_or_buffer, sep=sep)
+    assert data.shape[1] == 8
+
+    missing_values = [
+        (&#39;DT_DESFECHO&#39;, &#39;DDMMAA&#39;),
+    ]
+
+    for column, value in missing_values:
+        data.loc[data[column] == value, column] = None
+
+    date_columns = [col for col in data if col.startswith(&#39;DT_&#39;)]
+    for column in date_columns:
+        data[column] = pd.to_datetime(data[column], format=&#39;%d/%m/%Y&#39;)
+
+    data.drop_duplicates(inplace=True)
+
+    return data</code></pre>
 </details>
 </section>
 <section>
@@ -55,36 +117,104 @@ def do_nothing_differently():
 <section>
 <h2 class="section-title" id="header-functions">Functions</h2>
 <dl>
-<dt id="covidseverity.do_nothing"><code class="name flex">
-<span>def <span class="ident">do_nothing</span></span>(<span>)</span>
+<dt id="covidseverity.read_outcomes"><code class="name flex">
+<span>def <span class="ident">read_outcomes</span></span>(<span>filepath_or_buffer, sep='|')</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Something that does nothing.</p></div>
+<div class="desc"><p>Reads and organizes outcomes file.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def do_nothing():
+<pre><code class="python">def read_outcomes(filepath_or_buffer, sep=&#39;|&#39;):
     &#34;&#34;&#34;
-    Something that does nothing.
+    Reads and organizes outcomes file.
     &#34;&#34;&#34;
-    pass</code></pre>
+    data = pd.read_table(filepath_or_buffer, sep=sep)
+    assert data.shape[1] == 8
+
+    missing_values = [
+        (&#39;DT_DESFECHO&#39;, &#39;DDMMAA&#39;),
+    ]
+
+    for column, value in missing_values:
+        data.loc[data[column] == value, column] = None
+
+    date_columns = [col for col in data if col.startswith(&#39;DT_&#39;)]
+    for column in date_columns:
+        data[column] = pd.to_datetime(data[column], format=&#39;%d/%m/%Y&#39;)
+
+    data.drop_duplicates(inplace=True)
+
+    return data</code></pre>
 </details>
 </dd>
-<dt id="covidseverity.do_nothing_differently"><code class="name flex">
-<span>def <span class="ident">do_nothing_differently</span></span>(<span>)</span>
+<dt id="covidseverity.read_patients"><code class="name flex">
+<span>def <span class="ident">read_patients</span></span>(<span>filepath_or_buffer, sep='|')</span>
 </code></dt>
 <dd>
-<div class="desc"><p>Just kidding, it still does nothing the same way.</p></div>
+<div class="desc"><p>Reads and organizes patients file.</p></div>
 <details class="source">
 <summary>
 <span>Expand source code</span>
 </summary>
-<pre><code class="python">def do_nothing_differently():
+<pre><code class="python">def read_patients(filepath_or_buffer, sep=&#39;|&#39;):
     &#34;&#34;&#34;
-    Just kidding, it still does nothing the same way.
+    Reads and organizes patients file.
     &#34;&#34;&#34;
-    pass</code></pre>
+    data = pd.read_table(filepath_or_buffer, sep=sep)
+    assert data.shape[1] == 7
+
+    data.rename(str.upper, axis=&#39;columns&#39;, inplace=True)
+
+    for column in [&#39;AA_NASCIMENTO&#39;]:
+        data[column] = pd.to_numeric(
+            data[column], errors=&#39;coerce&#39;, downcast=&#39;integer&#39;)
+
+    missing_values = [
+        (&#39;CD_PAIS&#39;, &#39;XX&#39;),
+        (&#39;CD_UF&#39;, &#39;UU&#39;),
+        (&#39;CD_MUNICIPIO&#39;, &#39;MMMM&#39;),
+        (&#39;CD_CEPREDUZIDO&#39;, &#39;CCCC&#39;)
+    ]
+
+    for column, value in missing_values:
+        data.loc[data[column] == value, column] = None
+
+    data.drop_duplicates(inplace=True)
+
+    return data</code></pre>
+</details>
+</dd>
+<dt id="covidseverity.read_tests"><code class="name flex">
+<span>def <span class="ident">read_tests</span></span>(<span>filepath_or_buffer, sep='|')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Reads and organizes tests file.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def read_tests(filepath_or_buffer, sep=&#39;|&#39;):
+    &#34;&#34;&#34;
+    Reads and organizes tests file.
+    &#34;&#34;&#34;
+    data = pd.read_table(filepath_or_buffer, sep=sep)
+    assert data.shape[1] == 9
+
+    data.rename(str.upper, axis=&#39;columns&#39;, inplace=True)
+
+    nominal_columns = [col for col in data if col.startswith(&#39;DE_&#39;)]
+    for column in nominal_columns:
+        data[column] = data[column].str.strip()
+
+    date_columns = [col for col in data if col.startswith(&#39;DT_&#39;)]
+    for column in date_columns:
+        data[column] = pd.to_datetime(data[column], format=&#39;%d/%m/%Y&#39;)
+
+    data.drop_duplicates(inplace=True)
+
+    return data</code></pre>
 </details>
 </dd>
 </dl>
@@ -100,8 +230,9 @@ def do_nothing_differently():
 <ul id="index">
 <li><h3><a href="#header-functions">Functions</a></h3>
 <ul class="">
-<li><code><a title="covidseverity.do_nothing" href="#covidseverity.do_nothing">do_nothing</a></code></li>
-<li><code><a title="covidseverity.do_nothing_differently" href="#covidseverity.do_nothing_differently">do_nothing_differently</a></code></li>
+<li><code><a title="covidseverity.read_outcomes" href="#covidseverity.read_outcomes">read_outcomes</a></code></li>
+<li><code><a title="covidseverity.read_patients" href="#covidseverity.read_patients">read_patients</a></code></li>
+<li><code><a title="covidseverity.read_tests" href="#covidseverity.read_tests">read_tests</a></code></li>
 </ul>
 </li>
 </ul>
