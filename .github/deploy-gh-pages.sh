@@ -16,7 +16,7 @@ sitemap() {
 head=$(git rev-parse HEAD)
 
 git clone -b gh-pages "https://kernc:$GH_PASSWORD@github.com/$GITHUB_REPOSITORY.git" gh-pages
-cp -R html/sledge/* gh-pages/
+cp -R html/covidseverity/* gh-pages/
 cd gh-pages
 sitemap
 git add *
