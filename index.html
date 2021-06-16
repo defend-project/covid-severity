@@ -45,20 +45,11 @@ def read_patients(filepath_or_buffer, sep=&#39;|&#39;):
     assert data.shape[1] == 7
 
     data.rename(str.upper, axis=&#39;columns&#39;, inplace=True)
+    data.rename(lambda x: x[3:], axis=&#39;columns&#39;, inplace=True)
 
-    for column in [&#39;AA_NASCIMENTO&#39;]:
-        data[column] = pd.to_numeric(
-            data[column], errors=&#39;coerce&#39;, downcast=&#39;integer&#39;)
-
-    missing_values = [
-        (&#39;CD_PAIS&#39;, &#39;XX&#39;),
-        (&#39;CD_UF&#39;, &#39;UU&#39;),
-        (&#39;CD_MUNICIPIO&#39;, &#39;MMMM&#39;),
-        (&#39;CD_CEPREDUZIDO&#39;, &#39;CCCC&#39;)
-    ]
-
-    for column, value in missing_values:
-        data.loc[data[column] == value, column] = None
+    data.drop(columns=[&#39;PAIS&#39;, &#39;UF&#39;, &#39;MUNICIPIO&#39;, &#39;CEPREDUZIDO&#39;], inplace=True)
+    data[&#39;NASCIMENTO&#39;] = pd.to_numeric(
+        data[&#39;NASCIMENTO&#39;], errors=&#39;coerce&#39;, downcast=&#39;integer&#39;)
 
     data.drop_duplicates(inplace=True)
 
@@ -73,12 +64,15 @@ def read_tests(filepath_or_buffer, sep=&#39;|&#39;):
     assert data.shape[1] == 9
 
     data.rename(str.upper, axis=&#39;columns&#39;, inplace=True)
+    data.rename(lambda x: x[3:], axis=&#39;columns&#39;, inplace=True)
+    data.rename({ &#39;COLETA&#39; : &#39;DATA_COLETA&#39; }, axis=&#39;columns&#39;, inplace=True)
 
-    nominal_columns = [col for col in data if col.startswith(&#39;DE_&#39;)]
-    for column in nominal_columns:
+    data.drop(columns=[&#39;ORIGEM&#39;, &#39;VALOR_REFERENCIA&#39;], inplace=True)
+
+    for column in [&#39;EXAME&#39;, &#39;ANALITO&#39;, &#39;RESULTADO&#39;, &#39;UNIDADE&#39;]:
         data[column] = data[column].str.strip()
 
-    date_columns = [col for col in data if col.startswith(&#39;DT_&#39;)]
+    date_columns = [col for col in data if col.startswith(&#39;DATA_&#39;)]
     for column in date_columns:
         data[column] = pd.to_datetime(data[column], format=&#39;%d/%m/%Y&#39;)
 
@@ -94,33 +88,35 @@ def read_outcomes(filepath_or_buffer, sep=&#39;|&#39;):
     data = pd.read_table(filepath_or_buffer, sep=sep)
     assert data.shape[1] == 8
 
-    missing_values = [
-        (&#39;DT_DESFECHO&#39;, &#39;DDMMAA&#39;),
-    ]
+    data.rename(str.upper, axis=&#39;columns&#39;, inplace=True)
+    data.drop(columns=[&#39;ID_CLINICA&#39;, &#39;DE_CLINICA&#39;], inplace=True)
 
-    for column, value in missing_values:
-        data.loc[data[column] == value, column] = None
+    for column in [&#39;DT_DESFECHO&#39;, &#39;DT_ATENDIMENTO&#39;]:
+        data.loc[data[column] == &#39;DDMMAA&#39;, column] = None
 
-    date_columns = [col for col in data if col.startswith(&#39;DT_&#39;)]
-    for column in date_columns:
-        data[column] = pd.to_datetime(data[column], format=&#39;%d/%m/%Y&#39;)
+    data[&#39;XX_DIAS_ATE_DESFECHO&#39;] = (
+            pd.to_datetime(data[&#39;DT_DESFECHO&#39;], format=&#39;%d/%m/%Y&#39;) -
+            pd.to_datetime(data[&#39;DT_ATENDIMENTO&#39;], format=&#39;%d/%m/%Y&#39;)).dt.days
+
+    data.drop(columns=[&#39;DT_DESFECHO&#39;, &#39;DT_ATENDIMENTO&#39;], inplace=True)
+    data.rename(lambda x: x[3:], axis=&#39;columns&#39;, inplace=True)
 
     data.drop_duplicates(inplace=True)
 
-    data[&#39;UI_DIAS_DESFECHO&#39;] = (data[&#39;DT_DESFECHO&#39;] -
-            data[&#39;DT_ATENDIMENTO&#39;]).dt.days
+    data[&#39;CLASSE&#39;] = assess_severity(data)
+    data.drop(columns=[&#39;DIAS_ATE_DESFECHO&#39;], inplace=True)
 
     return data
 
 
 def assess_sample_severity(sample):
-    if sample[&#39;UI_DIAS_DESFECHO&#39;] &gt; 9 and sample[&#39;DE_TIPO_ATENDIMENTO&#39;] == &#39;Internado&#39;:
-        return 1
+    if sample[&#39;DIAS_ATE_DESFECHO&#39;] &gt;= 10 and sample[&#39;TIPO_ATENDIMENTO&#39;] == &#39;Internado&#39;:
+        return &#39;Grave&#39;
 
-    if not pd.isna(sample[&#39;DE_DESFECHO&#39;]) and sample[&#39;DE_DESFECHO&#39;].find(&#39;Óbito&#39;):
-        return 1
+    if &#34;Óbito&#34; in sample[&#39;DESFECHO&#39;]:
+        return &#39;Grave&#39;
 
-    return 0
+    return &#39;Leve&#39;
 
 
 def assess_severity(data):
@@ -129,7 +125,7 @@ def assess_severity(data):
 
     Parameters
     ----------
-    data: DataFrame (n_samples, 8)
+    data: DataFrame (n_samples, 9)
         Data with outcomes, see `read_outcomes`.
     &#34;&#34;&#34;
     return data.apply(assess_sample_severity, axis=1)</code></pre>
@@ -152,13 +148,13 @@ def assess_severity(data):
 <span>Expand source code</span>
 </summary>
 <pre><code class="python">def assess_sample_severity(sample):
-    if sample[&#39;UI_DIAS_DESFECHO&#39;] &gt; 9 and sample[&#39;DE_TIPO_ATENDIMENTO&#39;] == &#39;Internado&#39;:
-        return 1
+    if sample[&#39;DIAS_ATE_DESFECHO&#39;] &gt;= 10 and sample[&#39;TIPO_ATENDIMENTO&#39;] == &#39;Internado&#39;:
+        return &#39;Grave&#39;
 
-    if not pd.isna(sample[&#39;DE_DESFECHO&#39;]) and sample[&#39;DE_DESFECHO&#39;].find(&#39;Óbito&#39;):
-        return 1
+    if &#34;Óbito&#34; in sample[&#39;DESFECHO&#39;]:
+        return &#39;Grave&#39;
 
-    return 0</code></pre>
+    return &#39;Leve&#39;</code></pre>
 </details>
 </dd>
 <dt id="covidseverity.assess_severity"><code class="name flex">
@@ -168,7 +164,7 @@ def assess_severity(data):
 <div class="desc"><p>Computes severity for each sample in <code>data</code>.</p>
 <h2 id="parameters">Parameters</h2>
 <dl>
-<dt><strong><code>data</code></strong> :&ensp;<code>DataFrame (n_samples, 8)</code></dt>
+<dt><strong><code>data</code></strong> :&ensp;<code>DataFrame (n_samples, 9)</code></dt>
 <dd>Data with outcomes, see <code><a title="covidseverity.read_outcomes" href="#covidseverity.read_outcomes">read_outcomes()</a></code>.</dd>
 </dl></div>
 <details class="source">
@@ -181,7 +177,7 @@ def assess_severity(data):
 
     Parameters
     ----------
-    data: DataFrame (n_samples, 8)
+    data: DataFrame (n_samples, 9)
         Data with outcomes, see `read_outcomes`.
     &#34;&#34;&#34;
     return data.apply(assess_sample_severity, axis=1)</code></pre>
@@ -203,21 +199,23 @@ def assess_severity(data):
     data = pd.read_table(filepath_or_buffer, sep=sep)
     assert data.shape[1] == 8
 
-    missing_values = [
-        (&#39;DT_DESFECHO&#39;, &#39;DDMMAA&#39;),
-    ]
+    data.rename(str.upper, axis=&#39;columns&#39;, inplace=True)
+    data.drop(columns=[&#39;ID_CLINICA&#39;, &#39;DE_CLINICA&#39;], inplace=True)
 
-    for column, value in missing_values:
-        data.loc[data[column] == value, column] = None
+    for column in [&#39;DT_DESFECHO&#39;, &#39;DT_ATENDIMENTO&#39;]:
+        data.loc[data[column] == &#39;DDMMAA&#39;, column] = None
 
-    date_columns = [col for col in data if col.startswith(&#39;DT_&#39;)]
-    for column in date_columns:
-        data[column] = pd.to_datetime(data[column], format=&#39;%d/%m/%Y&#39;)
+    data[&#39;XX_DIAS_ATE_DESFECHO&#39;] = (
+            pd.to_datetime(data[&#39;DT_DESFECHO&#39;], format=&#39;%d/%m/%Y&#39;) -
+            pd.to_datetime(data[&#39;DT_ATENDIMENTO&#39;], format=&#39;%d/%m/%Y&#39;)).dt.days
+
+    data.drop(columns=[&#39;DT_DESFECHO&#39;, &#39;DT_ATENDIMENTO&#39;], inplace=True)
+    data.rename(lambda x: x[3:], axis=&#39;columns&#39;, inplace=True)
 
     data.drop_duplicates(inplace=True)
 
-    data[&#39;UI_DIAS_DESFECHO&#39;] = (data[&#39;DT_DESFECHO&#39;] -
-            data[&#39;DT_ATENDIMENTO&#39;]).dt.days
+    data[&#39;CLASSE&#39;] = assess_severity(data)
+    data.drop(columns=[&#39;DIAS_ATE_DESFECHO&#39;], inplace=True)
 
     return data</code></pre>
 </details>
@@ -239,20 +237,11 @@ def assess_severity(data):
     assert data.shape[1] == 7
 
     data.rename(str.upper, axis=&#39;columns&#39;, inplace=True)
+    data.rename(lambda x: x[3:], axis=&#39;columns&#39;, inplace=True)
 
-    for column in [&#39;AA_NASCIMENTO&#39;]:
-        data[column] = pd.to_numeric(
-            data[column], errors=&#39;coerce&#39;, downcast=&#39;integer&#39;)
-
-    missing_values = [
-        (&#39;CD_PAIS&#39;, &#39;XX&#39;),
-        (&#39;CD_UF&#39;, &#39;UU&#39;),
-        (&#39;CD_MUNICIPIO&#39;, &#39;MMMM&#39;),
-        (&#39;CD_CEPREDUZIDO&#39;, &#39;CCCC&#39;)
-    ]
-
-    for column, value in missing_values:
-        data.loc[data[column] == value, column] = None
+    data.drop(columns=[&#39;PAIS&#39;, &#39;UF&#39;, &#39;MUNICIPIO&#39;, &#39;CEPREDUZIDO&#39;], inplace=True)
+    data[&#39;NASCIMENTO&#39;] = pd.to_numeric(
+        data[&#39;NASCIMENTO&#39;], errors=&#39;coerce&#39;, downcast=&#39;integer&#39;)
 
     data.drop_duplicates(inplace=True)
 
@@ -276,12 +265,15 @@ def assess_severity(data):
     assert data.shape[1] == 9
 
     data.rename(str.upper, axis=&#39;columns&#39;, inplace=True)
+    data.rename(lambda x: x[3:], axis=&#39;columns&#39;, inplace=True)
+    data.rename({ &#39;COLETA&#39; : &#39;DATA_COLETA&#39; }, axis=&#39;columns&#39;, inplace=True)
 
-    nominal_columns = [col for col in data if col.startswith(&#39;DE_&#39;)]
-    for column in nominal_columns:
+    data.drop(columns=[&#39;ORIGEM&#39;, &#39;VALOR_REFERENCIA&#39;], inplace=True)
+
+    for column in [&#39;EXAME&#39;, &#39;ANALITO&#39;, &#39;RESULTADO&#39;, &#39;UNIDADE&#39;]:
         data[column] = data[column].str.strip()
 
-    date_columns = [col for col in data if col.startswith(&#39;DT_&#39;)]
+    date_columns = [col for col in data if col.startswith(&#39;DATA_&#39;)]
     for column in date_columns:
         data[column] = pd.to_datetime(data[column], format=&#39;%d/%m/%Y&#39;)
 
