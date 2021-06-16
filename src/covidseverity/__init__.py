@@ -34,7 +34,7 @@ def read_tests(filepath_or_buffer, sep='|'):
 
     data.rename(str.upper, axis='columns', inplace=True)
     data.rename(lambda x: x[3:], axis='columns', inplace=True)
-    data.rename({ 'COLETA' : 'DATA_COLETA' }, axis='columns', inplace=True)
+    data.rename({'COLETA': 'DATA_COLETA'}, axis='columns', inplace=True)
 
     data.drop(columns=['ORIGEM', 'VALOR_REFERENCIA'], inplace=True)
 
@@ -63,11 +63,18 @@ def read_outcomes(filepath_or_buffer, sep='|'):
     for column in ['DT_DESFECHO', 'DT_ATENDIMENTO']:
         data.loc[data[column] == 'DDMMAA', column] = None
 
-    data['XX_DIAS_ATE_DESFECHO'] = (
-            pd.to_datetime(data['DT_DESFECHO'], format='%d/%m/%Y') -
-            pd.to_datetime(data['DT_ATENDIMENTO'], format='%d/%m/%Y')).dt.days
+    data['DT_ATENDIMENTO'] = pd.to_datetime(
+        data['DT_ATENDIMENTO'], format='%d/%m/%Y')
+    data['DT_DESFECHO'] = pd.to_datetime(
+        data['DT_DESFECHO'], format='%d/%m/%Y')
 
-    data.drop(columns=['DT_DESFECHO', 'DT_ATENDIMENTO'], inplace=True)
+    data['XX_DIAS_ATE_DESFECHO'] = (
+        data['DT_DESFECHO'] - data['DT_ATENDIMENTO']
+    ).dt.days
+
+    data.drop(columns=['DT_DESFECHO'], inplace=True)
+    data.rename({'DT_ATENDIMENTO': 'DT_DATA_ATENDIMENTO'},
+                axis='columns', inplace=True)
     data.rename(lambda x: x[3:], axis='columns', inplace=True)
 
     data.drop_duplicates(inplace=True)
