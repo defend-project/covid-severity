@@ -65,7 +65,7 @@ def read_tests(filepath_or_buffer, sep=&#39;|&#39;):
 
     data.rename(str.upper, axis=&#39;columns&#39;, inplace=True)
     data.rename(lambda x: x[3:], axis=&#39;columns&#39;, inplace=True)
-    data.rename({ &#39;COLETA&#39; : &#39;DATA_COLETA&#39; }, axis=&#39;columns&#39;, inplace=True)
+    data.rename({&#39;COLETA&#39;: &#39;DATA_COLETA&#39;}, axis=&#39;columns&#39;, inplace=True)
 
     data.drop(columns=[&#39;ORIGEM&#39;, &#39;VALOR_REFERENCIA&#39;], inplace=True)
 
@@ -94,11 +94,18 @@ def read_outcomes(filepath_or_buffer, sep=&#39;|&#39;):
     for column in [&#39;DT_DESFECHO&#39;, &#39;DT_ATENDIMENTO&#39;]:
         data.loc[data[column] == &#39;DDMMAA&#39;, column] = None
 
-    data[&#39;XX_DIAS_ATE_DESFECHO&#39;] = (
-            pd.to_datetime(data[&#39;DT_DESFECHO&#39;], format=&#39;%d/%m/%Y&#39;) -
-            pd.to_datetime(data[&#39;DT_ATENDIMENTO&#39;], format=&#39;%d/%m/%Y&#39;)).dt.days
+    data[&#39;DT_ATENDIMENTO&#39;] = pd.to_datetime(
+        data[&#39;DT_ATENDIMENTO&#39;], format=&#39;%d/%m/%Y&#39;)
+    data[&#39;DT_DESFECHO&#39;] = pd.to_datetime(
+        data[&#39;DT_DESFECHO&#39;], format=&#39;%d/%m/%Y&#39;)
 
-    data.drop(columns=[&#39;DT_DESFECHO&#39;, &#39;DT_ATENDIMENTO&#39;], inplace=True)
+    data[&#39;XX_DIAS_ATE_DESFECHO&#39;] = (
+        data[&#39;DT_DESFECHO&#39;] - data[&#39;DT_ATENDIMENTO&#39;]
+    ).dt.days
+
+    data.drop(columns=[&#39;DT_DESFECHO&#39;], inplace=True)
+    data.rename({&#39;DT_ATENDIMENTO&#39;: &#39;DT_DATA_ATENDIMENTO&#39;},
+                axis=&#39;columns&#39;, inplace=True)
     data.rename(lambda x: x[3:], axis=&#39;columns&#39;, inplace=True)
 
     data.drop_duplicates(inplace=True)
@@ -205,11 +212,18 @@ def assess_severity(data):
     for column in [&#39;DT_DESFECHO&#39;, &#39;DT_ATENDIMENTO&#39;]:
         data.loc[data[column] == &#39;DDMMAA&#39;, column] = None
 
-    data[&#39;XX_DIAS_ATE_DESFECHO&#39;] = (
-            pd.to_datetime(data[&#39;DT_DESFECHO&#39;], format=&#39;%d/%m/%Y&#39;) -
-            pd.to_datetime(data[&#39;DT_ATENDIMENTO&#39;], format=&#39;%d/%m/%Y&#39;)).dt.days
+    data[&#39;DT_ATENDIMENTO&#39;] = pd.to_datetime(
+        data[&#39;DT_ATENDIMENTO&#39;], format=&#39;%d/%m/%Y&#39;)
+    data[&#39;DT_DESFECHO&#39;] = pd.to_datetime(
+        data[&#39;DT_DESFECHO&#39;], format=&#39;%d/%m/%Y&#39;)
 
-    data.drop(columns=[&#39;DT_DESFECHO&#39;, &#39;DT_ATENDIMENTO&#39;], inplace=True)
+    data[&#39;XX_DIAS_ATE_DESFECHO&#39;] = (
+        data[&#39;DT_DESFECHO&#39;] - data[&#39;DT_ATENDIMENTO&#39;]
+    ).dt.days
+
+    data.drop(columns=[&#39;DT_DESFECHO&#39;], inplace=True)
+    data.rename({&#39;DT_ATENDIMENTO&#39;: &#39;DT_DATA_ATENDIMENTO&#39;},
+                axis=&#39;columns&#39;, inplace=True)
     data.rename(lambda x: x[3:], axis=&#39;columns&#39;, inplace=True)
 
     data.drop_duplicates(inplace=True)
@@ -266,7 +280,7 @@ def assess_severity(data):
 
     data.rename(str.upper, axis=&#39;columns&#39;, inplace=True)
     data.rename(lambda x: x[3:], axis=&#39;columns&#39;, inplace=True)
-    data.rename({ &#39;COLETA&#39; : &#39;DATA_COLETA&#39; }, axis=&#39;columns&#39;, inplace=True)
+    data.rename({&#39;COLETA&#39;: &#39;DATA_COLETA&#39;}, axis=&#39;columns&#39;, inplace=True)
 
     data.drop(columns=[&#39;ORIGEM&#39;, &#39;VALOR_REFERENCIA&#39;], inplace=True)
 
